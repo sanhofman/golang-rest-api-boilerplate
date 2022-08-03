@@ -1,8 +1,8 @@
 version: '3'
 services:
-  mongodb:
+  golang_mongodb:
     image: mongo
-    container_name: mongodb
+    container_name: golang_mongodb
     restart: always
     env_file:
       - ./app.env
@@ -10,15 +10,15 @@ services:
     ports:
       - '6000:27017'
     volumes:
-      - mongodb:/data/db
+      - golang_mongodb:/data/db
 
-  redis:
+  golang_redis:
     image: redis:alpine
-    container_name: redis
+    container_name: golang_redis
     ports:
       - '6379:6379'
     volumes:
-      - redisDB:/data
+      - golang_redis:/data
 volumes:
-  mongodb:
-  redisDB:
+  golang_mongodb:
+  golang_redis:

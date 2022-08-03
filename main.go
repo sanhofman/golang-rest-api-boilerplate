@@ -34,6 +34,11 @@ var (
 	AuthController      controllers.AuthController
 	AuthRouteController routes.AuthRouteController
 
+	childService         services.ChildService
+	ChildController      controllers.ChildController
+	childCollection      *mongo.Collection
+	ChildRouteController routes.ChildRouteController
+
 	temp *template.Template
 )
 
@@ -86,6 +91,11 @@ func init() {
 	UserController = controllers.NewUserController(userService)
 	UserRouteController = routes.NewRouteUserController(UserController)
 
+	childCollection = mongoclient.Database("golang_mongodb").Collection("children")
+	childService = services.NewChildService(childCollection, ctx)
+	ChildController = controllers.NewChildController(childService)
+	ChildRouteController = routes.NewChildControllerRoute(ChildController)
+
 	server = gin.Default()
 }
 
@@ -119,5 +129,7 @@ func main() {
 
 	AuthRouteController.AuthRoute(router, userService)
 	UserRouteController.UserRoute(router, userService)
+	ChildRouteController.ChildRoute(router)
+
 	log.Fatal(server.Run(":" + config.Port))
 }
