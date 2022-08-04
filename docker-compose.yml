@@ -1,8 +1,8 @@
 version: '3'
 services:
-  golang_mongodb:
+  go_rest_api_boilerplate_mongodb:
     image: mongo
-    container_name: golang_mongodb
+    container_name: go_rest_api_boilerplate_mongodb
     restart: always
     env_file:
       - ./app.env
@@ -10,15 +10,15 @@ services:
     ports:
       - '6000:27017'
     volumes:
-      - golang_mongodb:/data/db
+      - go_rest_api_boilerplate_mongodb:/data/db
 
-  golang_redis:
+  go_rest_api_boilerplate_redis:
     image: redis:alpine
-    container_name: golang_redis
+    container_name: go_rest_api_boilerplate_redis
     ports:
       - '6379:6379'
     volumes:
-      - golang_redis:/data
+      - go_rest_api_boilerplate_redis:/data
 volumes:
-  golang_mongodb:
-  golang_redis:
+  go_rest_api_boilerplate_mongodb:
+  go_rest_api_boilerplate_redis:

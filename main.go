@@ -129,7 +129,7 @@ func main() {
 
 	AuthRouteController.AuthRoute(router, userService)
 	UserRouteController.UserRoute(router, userService)
-	ChildRouteController.ChildRoute(router)
+	ChildRouteController.ChildRoute(router, userService)
 
 	log.Fatal(server.Run(":" + config.Port))
 }

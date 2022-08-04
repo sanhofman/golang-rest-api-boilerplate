@@ -75,6 +75,7 @@ func (ac *AuthController) SignUpUser(ctx *gin.Context) {
 	}
 
 	// 👇 Send Email
+	// @TODO:: separate thread go function?
 	emailData := utils.EmailData{
 		URL:       config.Origin + "/verifyemail/" + code,
 		FirstName: firstName,
