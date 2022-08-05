@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/wpcodevo/golang-mongodb/models"
-	//"github.com/wpcodevo/golang-mongodb/utils"
+	"github.com/wpcodevo/golang-mongodb/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -53,25 +53,24 @@ func (p *ChildServiceImpl) CreateChild(Child *models.CreateChildRequest) (*model
 }
 
 func (p *ChildServiceImpl) UpdateChild(id string, data *models.UpdateChild) (*models.DBChild, error) {
-// 	doc, err := utils.ToDoc(data)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	obId, _ := primitive.ObjectIDFromHex(id)
-// 	query := bson.D{{Key: "_id", Value: obId}}
-// 	update := bson.D{{Key: "$set", Value: doc}}
-// 	res := p.childCollection.FindOneAndUpdate(p.ctx, query, update, options.FindOneAndUpdate().SetReturnDocument(1))
-//
-// 	var updatedChild *models.DBChild
-//
-// 	if err := res.Decode(&updatedChild); err != nil {
-// 		return nil, errors.New("no Child with that Id exists")
-// 	}
+	doc, err := utils.ToDoc(data)
 
-	// return updatedChild, nil
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, errors.New("no Child with that Id exists")
+	obId, _ := primitive.ObjectIDFromHex(id)
+	query := bson.D{{Key: "_id", Value: obId}}
+	update := bson.D{{Key: "$set", Value: doc}}
+	res := p.childCollection.FindOneAndUpdate(p.ctx, query, update, options.FindOneAndUpdate().SetReturnDocument(1))
+
+	var updatedChild *models.DBChild
+
+	if err := res.Decode(&updatedChild); err != nil {
+		return nil, errors.New("no Child with that Id exists")
+	}
+
+	return updatedChild, nil
 }
 
 func (p *ChildServiceImpl) FindChildById(id string) (*models.DBChild, error) {

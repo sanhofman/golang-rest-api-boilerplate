@@ -82,11 +82,7 @@ func (ac *AuthController) SignUpUser(ctx *gin.Context) {
 		Subject:   "Your account verification code",
 	}
 
-	err = utils.SendEmail(newUser, &emailData, ac.temp, "verificationCode.html")
-	if err != nil {
-		ctx.JSON(http.StatusBadGateway, gin.H{"status": "success", "message": "There was an error sending email"})
-		return
-	}
+	go utils.SendEmail(newUser, &emailData, ac.temp, "verificationCode.html")
 
 	message := "We sent an email with a verification code to " + user.Email
 	ctx.JSON(http.StatusCreated, gin.H{"status": "success", "message": message})

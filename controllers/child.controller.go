@@ -42,7 +42,7 @@ func (pc *ChildController) CreateChild(ctx *gin.Context) {
 }
 
 func (pc *ChildController) UpdateChild(ctx *gin.Context) {
-	ChildId := ctx.Param("ChildId")
+	ChildId := ctx.Param("childId")
 
 	var Child *models.UpdateChild
 	if err := ctx.ShouldBindJSON(&Child); err != nil {
@@ -64,7 +64,7 @@ func (pc *ChildController) UpdateChild(ctx *gin.Context) {
 }
 
 func (pc *ChildController) FindChildById(ctx *gin.Context) {
-	ChildId := ctx.Param("ChildId")
+	ChildId := ctx.Param("childId")
 
 	Child, err := pc.childService.FindChildById(ChildId)
 
@@ -106,7 +106,7 @@ func (pc *ChildController) FindChildren(ctx *gin.Context) {
 }
 
 func (pc *ChildController) DeleteChild(ctx *gin.Context) {
-	ChildId := ctx.Param("ChildId")
+	ChildId := ctx.Param("childId")
 
 	err := pc.childService.DeleteChild(ChildId)
 

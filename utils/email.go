@@ -53,7 +53,8 @@ func SendEmail(user *models.DBResponse, data *EmailData, temp *template.Template
 
 	// Send Email
 	if err := d.DialAndSend(m); err != nil {
-		return err
+		log.Fatal("Could not send email", err)
 	}
+
 	return nil
 }
