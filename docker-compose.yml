@@ -19,6 +19,21 @@ services:
       - '6379:6379'
     volumes:
       - go_rest_api_boilerplate_redis:/data
+
+  postgres:
+    image: postgres:13
+    restart: unless-stopped
+    container_name: go_rest_api_boilerplate_postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - go_rest_api_boilerplate_postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+
 volumes:
   go_rest_api_boilerplate_mongodb:
   go_rest_api_boilerplate_redis:
+  go_rest_api_boilerplate_postgres:

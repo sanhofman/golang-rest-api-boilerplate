@@ -17,6 +17,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+
+	"github.com/wpcodevo/golang-mongodb/database/common/db"
 )
 
 var (
@@ -74,12 +76,16 @@ func init() {
 		panic(err)
 	}
 
-	err = redisclient.Set(ctx, "test", "Welcome to Golang with Redis and MongoDB", 0).Err()
+	err = redisclient.Set(ctx, "test", "Welcome to Kadee API", 0).Err()
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("Redis client connected successfully...")
+
+	// Connect Postgres
+	var dbUrl = "postgres://postgres:postgres@127.0.0.1:5432/postgres"
+	db := db.Init(dbUrl)
 
 	// Collections
 	authCollection = mongoclient.Database("golang_mongodb").Collection("users")
@@ -91,8 +97,8 @@ func init() {
 	UserController = controllers.NewUserController(userService)
 	UserRouteController = routes.NewRouteUserController(UserController)
 
-	childCollection = mongoclient.Database("golang_mongodb").Collection("children")
-	childService = services.NewChildService(childCollection, ctx)
+	// childCollection = mongoclient.Database("golang_mongodb").Collection("children")
+	childService = services.NewChildServiceImpl(db, ctx)
 	ChildController = controllers.NewChildController(childService)
 	ChildRouteController = routes.NewChildControllerRoute(ChildController)
 
@@ -123,7 +129,7 @@ func main() {
 	server.Use(cors.New(corsConfig))
 
 	router := server.Group("/api")
-	router.GET("/healthchecker", func(ctx *gin.Context) {
+	router.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": value})
 	})
 

@@ -26,7 +26,7 @@ func (pc *ChildController) CreateChild(ctx *gin.Context) {
 		return
 	}
 
-	newChild, err := pc.childService.CreateChild(Child)
+	newChild, err := pc.childService.CreateChild(Child, ctx)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
@@ -44,15 +44,16 @@ func (pc *ChildController) CreateChild(ctx *gin.Context) {
 func (pc *ChildController) UpdateChild(ctx *gin.Context) {
 	ChildId := ctx.Param("childId")
 
+    // @TODO:: move all input models postgres instead of Mongo
 	var Child *models.UpdateChild
 	if err := ctx.ShouldBindJSON(&Child); err != nil {
-		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
 	updatedChild, err := pc.childService.UpdateChild(ChildId, Child)
 	if err != nil {
-		if strings.Contains(err.Error(), "Id exists") {
+		if strings.Contains(err.Error(), "not found") {
 			ctx.JSON(http.StatusNotFound, gin.H{"status": "fail", "message": err.Error()})
 			return
 		}
@@ -69,7 +70,7 @@ func (pc *ChildController) FindChildById(ctx *gin.Context) {
 	Child, err := pc.childService.FindChildById(ChildId)
 
 	if err != nil {
-		if strings.Contains(err.Error(), "Id exists") {
+		if strings.Contains(err.Error(), "not found") {
 			ctx.JSON(http.StatusNotFound, gin.H{"status": "fail", "message": err.Error()})
 			return
 		}
@@ -111,7 +112,7 @@ func (pc *ChildController) DeleteChild(ctx *gin.Context) {
 	err := pc.childService.DeleteChild(ChildId)
 
 	if err != nil {
-		if strings.Contains(err.Error(), "Id exists") {
+		if strings.Contains(err.Error(), "not found") {
 			ctx.JSON(http.StatusNotFound, gin.H{"status": "fail", "message": err.Error()})
 			return
 		}

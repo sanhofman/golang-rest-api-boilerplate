@@ -1,97 +1,87 @@
 package services
 
 import (
+    "errors"
 	"context"
-	"errors"
 	"time"
 
+    "gorm.io/gorm"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/wpcodevo/golang-mongodb/database/common/dbModels"
+
 	"github.com/wpcodevo/golang-mongodb/models"
-	"github.com/wpcodevo/golang-mongodb/utils"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ChildServiceImpl struct {
-	childCollection *mongo.Collection
+	db             *gorm.DB
 	ctx            context.Context
 }
 
-func NewChildService(childCollection *mongo.Collection, ctx context.Context) ChildService {
-	return &ChildServiceImpl{childCollection, ctx}
+func NewChildServiceImpl(db *gorm.DB, ctx context.Context) ChildService {
+	return &ChildServiceImpl{db, ctx}
 }
 
-func (p *ChildServiceImpl) CreateChild(Child *models.CreateChildRequest) (*models.DBChild, error) {
+func (p *ChildServiceImpl) CreateChild(Child *models.CreateChildRequest, ctx *gin.Context) (dbModels.Child, error) {
 	Child.CreateAt = time.Now()
 	Child.UpdatedAt = Child.CreateAt
-	res, err := p.childCollection.InsertOne(p.ctx, Child)
 
-	if err != nil {
-		if er, ok := err.(mongo.WriteException); ok && er.WriteErrors[0].Code == 11000 {
-			return nil, errors.New("Child with that name already exists")
-		}
-		return nil, err
-	}
+    var child dbModels.Child
 
-	opt := options.Index()
-	opt.SetUnique(true)
+    // Check existence.
+    p.db.Where("name = ? AND parent = ?", Child.Name, Child.Parent).First(&child)
+    if child.Name != "" {
+        return child, errors.New("child already exists")
+    }
 
-	index := mongo.IndexModel{Keys: bson.M{"name": 1}, Options: opt}
+    // @TODO:: bind user id instead of name
+	currentUser := ctx.MustGet("currentUser").(*models.DBResponse)
 
-	if _, err := p.childCollection.Indexes().CreateOne(p.ctx, index); err != nil {
-		return nil, errors.New("could not create index for name")
-	}
+    // Create child.
+    child.Name = Child.Name
+    child.Parent = Child.Parent
+    child.CreatedBy = currentUser.Name
 
-	var newChild *models.DBChild
-	query := bson.M{"_id": res.InsertedID}
-	if err = p.childCollection.FindOne(p.ctx, query).Decode(&newChild); err != nil {
-		return nil, err
-	}
+    if result := p.db.Create(&child); result.Error != nil {
+        return child, errors.New("child creation failed")
+    }
 
-	return newChild, nil
+	return child, nil
 }
 
-func (p *ChildServiceImpl) UpdateChild(id string, data *models.UpdateChild) (*models.DBChild, error) {
-	doc, err := utils.ToDoc(data)
+func (p *ChildServiceImpl) UpdateChild(id string, data *models.UpdateChild) (dbModels.Child, error) {
+    var child dbModels.Child
 
-	if err != nil {
-		return nil, err
-	}
+    if result := p.db.First(&child, id); result.Error != nil {
+        return child, errors.New("Child not found")
+    }
 
-	obId, _ := primitive.ObjectIDFromHex(id)
-	query := bson.D{{Key: "_id", Value: obId}}
-	update := bson.D{{Key: "$set", Value: doc}}
-	res := p.childCollection.FindOneAndUpdate(p.ctx, query, update, options.FindOneAndUpdate().SetReturnDocument(1))
+    // Map values.
+    child.Name = data.Name // required
 
-	var updatedChild *models.DBChild
+    if (data.Parent != "") {
+        child.Parent = data.Parent
+    }
 
-	if err := res.Decode(&updatedChild); err != nil {
-		return nil, errors.New("no Child with that Id exists")
-	}
+    p.db.Save(&child)
 
-	return updatedChild, nil
+	return child, nil
 }
 
-func (p *ChildServiceImpl) FindChildById(id string) (*models.DBChild, error) {
-	obId, _ := primitive.ObjectIDFromHex(id)
+func (p *ChildServiceImpl) FindChildById(id string) (dbModels.Child, error) {
+    var child dbModels.Child
 
-	query := bson.M{"_id": obId}
+    if result := p.db.First(&child, id); result.Error != nil {
+        // c.AbortWithError(http.StatusNotFound, result.Error)
+        return child, errors.New("Child not found")
+    }
 
-	var Child *models.DBChild
-
-	if err := p.childCollection.FindOne(p.ctx, query).Decode(&Child); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, errors.New("no document with that Id exists")
-		}
-
-		return nil, err
-	}
-
-	return Child, nil
+    return child, nil
 }
 
-func (p *ChildServiceImpl) FindChildren(page int, limit int) ([]*models.DBChild, error) {
+func (p *ChildServiceImpl) FindChildren(page int, limit int) ([]dbModels.Child, error) {
+    // @TODO:: implement paging?
 	if page == 0 {
 		page = 1
 	}
@@ -100,57 +90,28 @@ func (p *ChildServiceImpl) FindChildren(page int, limit int) ([]*models.DBChild,
 		limit = 10
 	}
 
-	skip := (page - 1) * limit
+    var children []dbModels.Child
 
-	opt := options.FindOptions{}
-	opt.SetLimit(int64(limit))
-	opt.SetSkip(int64(skip))
+    if result := p.db.Find(&children); result.Error != nil {
+        return children, errors.New("No children found")
+    }
 
-	query := bson.M{}
-
-	cursor, err := p.childCollection.Find(p.ctx, query, &opt)
-	if err != nil {
-		return nil, err
-	}
-
-	defer cursor.Close(p.ctx)
-
-	var Childs []*models.DBChild
-
-	for cursor.Next(p.ctx) {
-		Child := &models.DBChild{}
-		err := cursor.Decode(Child)
-
-		if err != nil {
-			return nil, err
-		}
-
-		Childs = append(Childs, Child)
-	}
-
-	if err := cursor.Err(); err != nil {
-		return nil, err
-	}
-
-	if len(Childs) == 0 {
-		return []*models.DBChild{}, nil
-	}
-
-	return Childs, nil
+    // @TODO:: use separate input/output objects?
+    return children, nil
 }
 
 func (p *ChildServiceImpl) DeleteChild(id string) error {
-	obId, _ := primitive.ObjectIDFromHex(id)
-	query := bson.M{"_id": obId}
-
-	res, err := p.childCollection.DeleteOne(p.ctx, query)
-	if err != nil {
-		return err
-	}
-
-	if res.DeletedCount == 0 {
-		return errors.New("no document with that Id exists")
-	}
+// 	obId, _ := primitive.ObjectIDFromHex(id)
+// 	query := bson.M{"_id": obId}
+//
+// 	res, err := p.childCollection.DeleteOne(p.ctx, query)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	if res.DeletedCount == 0 {
+// 		return errors.New("no document with that Id exists")
+// 	}
 
 	return nil
 }
