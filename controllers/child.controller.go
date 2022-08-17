@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/wpcodevo/golang-mongodb/database/common/dbModels"
+
 	"github.com/gin-gonic/gin"
 	"github.com/wpcodevo/golang-mongodb/models"
 	"github.com/wpcodevo/golang-mongodb/services"
@@ -26,7 +28,9 @@ func (pc *ChildController) CreateChild(ctx *gin.Context) {
 		return
 	}
 
-	newChild, err := pc.childService.CreateChild(Child, ctx)
+	currentUser := ctx.MustGet("currentUser").(dbModels.User)
+
+	newChild, err := pc.childService.CreateChild(Child, currentUser)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
@@ -97,13 +101,15 @@ func (pc *ChildController) FindChildren(ctx *gin.Context) {
 		return
 	}
 
-	Childs, err := pc.childService.FindChildren(intPage, intLimit)
+    currentUser := ctx.MustGet("currentUser").(dbModels.User)
+
+	Children, err := pc.childService.FindChildren(intPage, intLimit, currentUser)
 	if err != nil {
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "results": len(Childs), "data": Childs})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "results": len(Children), "data": Children})
 }
 
 func (pc *ChildController) DeleteChild(ctx *gin.Context) {

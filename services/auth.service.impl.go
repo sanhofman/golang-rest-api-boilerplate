@@ -6,61 +6,51 @@ import (
 	"strings"
 	"time"
 
+    "gorm.io/gorm"
+
+	"github.com/wpcodevo/golang-mongodb/database/common/dbModels"
+
 	"github.com/wpcodevo/golang-mongodb/models"
 	"github.com/wpcodevo/golang-mongodb/utils"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type AuthServiceImpl struct {
-	collection *mongo.Collection
-	ctx        context.Context
+	db             *gorm.DB
+	ctx            context.Context
 }
 
-func NewAuthService(collection *mongo.Collection, ctx context.Context) AuthService {
-	return &AuthServiceImpl{collection, ctx}
+func NewAuthService(db *gorm.DB, ctx context.Context) AuthService {
+	return &AuthServiceImpl{db, ctx}
 }
 
-func (uc *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.DBResponse, error) {
+func (uc *AuthServiceImpl) SignUpUser(User *models.SignUpInput) (dbModels.User, error) {
+    var user dbModels.User
+
+    // Check existence.
+    uc.db.Where("email = ?", User.Email).First(&user)
+    if user.Email != "" {
+        return user, errors.New("user already exists")
+    }
+
 	user.CreatedAt = time.Now()
-	user.UpdatedAt = user.CreatedAt
-	user.Email = strings.ToLower(user.Email)
-	user.PasswordConfirm = ""
+	user.UpdatedAt = User.CreatedAt
+	user.Email = strings.ToLower(User.Email)
+//	user.PasswordConfirm = ""
 	user.Verified = false
-	user.Role = "user"
+//	user.Role = "user"
 
-	hashedPassword, _ := utils.HashPassword(user.Password)
+	hashedPassword, _ := utils.HashPassword(User.Password)
 	user.Password = hashedPassword
-	res, err := uc.collection.InsertOne(uc.ctx, &user)
 
-	if err != nil {
-		if er, ok := err.(mongo.WriteException); ok && er.WriteErrors[0].Code == 11000 {
-			return nil, errors.New("user with that email already exist")
-		}
-		return nil, err
-	}
+    if result := uc.db.Create(&user); result.Error != nil {
+        return user, errors.New("User creation failed")
+    }
 
-	// Create a unique index for the email field
-	opt := options.Index()
-	opt.SetUnique(true)
-	index := mongo.IndexModel{Keys: bson.M{"email": 1}, Options: opt}
-
-	if _, err := uc.collection.Indexes().CreateOne(uc.ctx, index); err != nil {
-		return nil, errors.New("could not create index for email")
-	}
-
-	var newUser *models.DBResponse
-	query := bson.M{"_id": res.InsertedID}
-
-	err = uc.collection.FindOne(uc.ctx, query).Decode(&newUser)
-	if err != nil {
-		return nil, err
-	}
-
-	return newUser, nil
+	return user, nil
 }
 
-func (uc *AuthServiceImpl) SignInUser(*models.SignInInput) (*models.DBResponse, error) {
-	return nil, nil
+func (uc *AuthServiceImpl) SignInUser(*models.SignInInput) (dbModels.User, error) {
+    var user dbModels.User
+
+	return user, nil
 }

@@ -7,8 +7,6 @@ import (
 
     "gorm.io/gorm"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/wpcodevo/golang-mongodb/database/common/dbModels"
 
 	"github.com/wpcodevo/golang-mongodb/models"
@@ -23,7 +21,7 @@ func NewChildServiceImpl(db *gorm.DB, ctx context.Context) ChildService {
 	return &ChildServiceImpl{db, ctx}
 }
 
-func (p *ChildServiceImpl) CreateChild(Child *models.CreateChildRequest, ctx *gin.Context) (dbModels.Child, error) {
+func (p *ChildServiceImpl) CreateChild(Child *models.CreateChildRequest, currentUser dbModels.User) (dbModels.Child, error) {
 	Child.CreateAt = time.Now()
 	Child.UpdatedAt = Child.CreateAt
 
@@ -35,13 +33,10 @@ func (p *ChildServiceImpl) CreateChild(Child *models.CreateChildRequest, ctx *gi
         return child, errors.New("child already exists")
     }
 
-    // @TODO:: bind user id instead of name
-	currentUser := ctx.MustGet("currentUser").(*models.DBResponse)
-
     // Create child.
     child.Name = Child.Name
     child.Parent = Child.Parent
-    child.CreatedBy = currentUser.Name
+    child.CreatedBy = currentUser.ID
 
     if result := p.db.Create(&child); result.Error != nil {
         return child, errors.New("child creation failed")
@@ -80,7 +75,7 @@ func (p *ChildServiceImpl) FindChildById(id string) (dbModels.Child, error) {
     return child, nil
 }
 
-func (p *ChildServiceImpl) FindChildren(page int, limit int) ([]dbModels.Child, error) {
+func (p *ChildServiceImpl) FindChildren(page int, limit int, currentUser dbModels.User) ([]dbModels.Child, error) {
     // @TODO:: implement paging?
 	if page == 0 {
 		page = 1
@@ -92,7 +87,7 @@ func (p *ChildServiceImpl) FindChildren(page int, limit int) ([]dbModels.Child, 
 
     var children []dbModels.Child
 
-    if result := p.db.Find(&children); result.Error != nil {
+    if result := p.db.Where("created_by", currentUser.ID).Find(&children); result.Error != nil {
         return children, errors.New("No children found")
     }
 

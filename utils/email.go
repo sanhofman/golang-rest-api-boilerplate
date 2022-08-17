@@ -6,9 +6,10 @@ import (
 	"html/template"
 	"log"
 
+	"github.com/wpcodevo/golang-mongodb/database/common/dbModels"
+
 	"github.com/k3a/html2text"
 	"github.com/wpcodevo/golang-mongodb/config"
-	"github.com/wpcodevo/golang-mongodb/models"
 	"gopkg.in/gomail.v2"
 )
 
@@ -19,7 +20,7 @@ type EmailData struct {
 }
 
 // 👇 Email template parser
-func SendEmail(user *models.DBResponse, data *EmailData, temp *template.Template, templateName string) error {
+func SendEmail(user dbModels.User, data *EmailData, temp *template.Template, templateName string) error {
 	config, err := config.LoadConfig(".")
 
 	if err != nil {

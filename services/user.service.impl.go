@@ -2,83 +2,71 @@ package services
 
 import (
 	"context"
-	"fmt"
-	"strings"
+	"errors"
 
-	"github.com/wpcodevo/golang-mongodb/models"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+    "gorm.io/gorm"
+
+	"github.com/wpcodevo/golang-mongodb/database/common/dbModels"
 )
 
 type UserServiceImpl struct {
-	collection *mongo.Collection
-	ctx        context.Context
+	db             *gorm.DB
+	ctx            context.Context
 }
 
-func NewUserServiceImpl(collection *mongo.Collection, ctx context.Context) UserService {
-	return &UserServiceImpl{collection, ctx}
+func NewUserServiceImpl(db *gorm.DB, ctx context.Context) UserService {
+	return &UserServiceImpl{db, ctx}
 }
 
-func (us *UserServiceImpl) FindUserById(id string) (*models.DBResponse, error) {
-	oid, _ := primitive.ObjectIDFromHex(id)
+func (us *UserServiceImpl) FindUserById(id string) (dbModels.User, error) {
+    var user dbModels.User
 
-	var user *models.DBResponse
-
-	query := bson.M{"_id": oid}
-	err := us.collection.FindOne(us.ctx, query).Decode(&user)
-
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return &models.DBResponse{}, err
-		}
-		return nil, err
-	}
+    us.db.Where("id = ?", id).First(&user)
+    if user.Email == "" {
+        return user, errors.New("user not found")
+    }
 
 	return user, nil
 }
 
-func (us *UserServiceImpl) FindUserByEmail(email string) (*models.DBResponse, error) {
-	var user *models.DBResponse
+func (us *UserServiceImpl) FindUserByEmail(email string) (dbModels.User, error) {
+    var user dbModels.User
 
-	query := bson.M{"email": strings.ToLower(email)}
-	err := us.collection.FindOne(us.ctx, query).Decode(&user)
-
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return &models.DBResponse{}, err
-		}
-		return nil, err
-	}
+    us.db.Where("email = ?", email).First(&user)
+    if user.Email == "" {
+        return user, errors.New("user not found")
+    }
 
 	return user, nil
 }
 
-func (uc *UserServiceImpl) UpdateUserById(id string, field string, value string) (*models.DBResponse, error) {
-	userId, _ := primitive.ObjectIDFromHex(id)
-	query := bson.D{{Key: "_id", Value: userId}}
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: field, Value: value}}}}
-	result, err := uc.collection.UpdateOne(uc.ctx, query, update)
+func (uc *UserServiceImpl) UpdateUserById(id string, field string, value string) (dbModels.User, error) {
+    var user dbModels.User
 
-	fmt.Print(result.ModifiedCount)
-	if err != nil {
-		fmt.Print(err)
-		return &models.DBResponse{}, err
-	}
+    uc.db.Where("uuid = ?", id).First(&user)
+    if user.Email != "" {
+        return user, errors.New("user not found")
+    }
 
-	return &models.DBResponse{}, nil
+    uc.db.Model(&user).Update(field, value)
+
+	return user, nil
 }
 
-func (uc *UserServiceImpl) UpdateOne(field string, value interface{}) (*models.DBResponse, error) {
-	query := bson.D{{Key: field, Value: value}}
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: field, Value: value}}}}
-	result, err := uc.collection.UpdateOne(uc.ctx, query, update)
+func (uc *UserServiceImpl) UpdateOne(field string, value interface{}) (dbModels.User, error) {
+// 	query := bson.D{{Key: field, Value: value}}
+// 	update := bson.D{{Key: "$set", Value: bson.D{{Key: field, Value: value}}}}
+// 	result, err := uc.collection.UpdateOne(uc.ctx, query, update)
+//
+// 	fmt.Print(result.ModifiedCount)
+// 	if err != nil {
+// 		fmt.Print(err)
+// 		return &models.DBResponse{}, err
+// 	}
+//
+// 	return &models.DBResponse{}, nil
 
-	fmt.Print(result.ModifiedCount)
-	if err != nil {
-		fmt.Print(err)
-		return &models.DBResponse{}, err
-	}
-
-	return &models.DBResponse{}, nil
+    // @TODO:: what is this?
+    var user dbModels.User
+    return user, nil
 }

@@ -8,5 +8,5 @@ type Child struct {
     gorm.Model
 	Name            string             `json:"name"`
 	Parent          string             `json:"parent"`
-	CreatedBy       string             `json:"created_by"`
+	CreatedBy       uint               `json:"created_by"`
 }

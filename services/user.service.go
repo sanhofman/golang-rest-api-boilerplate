@@ -1,10 +1,12 @@
 package services
 
-import "github.com/wpcodevo/golang-mongodb/models"
+import (
+	"github.com/wpcodevo/golang-mongodb/database/common/dbModels"
+)
 
 type UserService interface {
-	FindUserById(id string) (*models.DBResponse, error)
-	FindUserByEmail(email string) (*models.DBResponse, error)
-	UpdateUserById(id string, field string, value string) (*models.DBResponse, error)
-	UpdateOne(field string, value interface{}) (*models.DBResponse, error)
+	FindUserById(id string) (dbModels.User, error)
+	FindUserByEmail(email string) (dbModels.User, error)
+	UpdateUserById(id string, field string, value string) (dbModels.User, error)
+	UpdateOne(field string, value interface{}) (dbModels.User, error)
 }

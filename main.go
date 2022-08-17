@@ -88,9 +88,9 @@ func init() {
 	db := db.Init(dbUrl)
 
 	// Collections
-	authCollection = mongoclient.Database("golang_mongodb").Collection("users")
-	userService = services.NewUserServiceImpl(authCollection, ctx)
-	authService = services.NewAuthService(authCollection, ctx)
+	//authCollection = mongoclient.Database("golang_mongodb").Collection("users")
+	userService = services.NewUserServiceImpl(db, ctx)
+	authService = services.NewAuthService(db, ctx)
 	AuthController = controllers.NewAuthController(authService, userService, ctx, authCollection, temp)
 	AuthRouteController = routes.NewAuthRouteController(AuthController)
 
